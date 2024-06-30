@@ -1,0 +1,9 @@
+{
+    "Author": "redstrate",
+    "Name": "Refitter",
+    "Punchline": "Modify chest bones for specific gear.",
+    "Description": "Add gear model-specific bone overrides.",
+    "Tags": [],
+    "RepoUrl": "https://github.com/redstrate/Refitter",
+    "DalamudApiLevel": 10
+}
