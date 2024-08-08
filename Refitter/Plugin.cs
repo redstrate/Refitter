@@ -7,6 +7,7 @@ using Dalamud.Plugin.Services;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.Havok.Common.Base.Math.QsTransform;
 using FFXIVClientStructs.Havok.Common.Base.Math.Quaternion;
 using FFXIVClientStructs.Havok.Common.Base.Math.Vector;
@@ -15,6 +16,8 @@ namespace Refitter;
 
 public sealed class Plugin : IDalamudPlugin
 {
+    // TODO: is this actually the maximum number of possible character views on screen?
+    private const int MaxCharaViews = 5;
     public static Configuration Configuration = null!;
 
     /// <summary>
@@ -52,6 +55,12 @@ public sealed class Plugin : IDalamudPlugin
         Scale = NullVector
     };
 
+    /// See https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/UI/Misc/CharaView.cs
+    [Signature("E8 ?? ?? ?? ?? 49 8B 4C 24 ?? 8B 51 04", DetourName = nameof(RenderCharaView))]
+    private readonly Hook<CharaViewRenderDelegate>? charaViewRenderHook = null!;
+
+    private readonly unsafe CharaView*[] charaViews = new CharaView*[MaxCharaViews];
+
     /// Called sometime during the render loop
     [Signature("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED", DetourName = nameof(Render))]
     private readonly Hook<RenderDelegate>? renderHook = null!;
@@ -59,6 +68,7 @@ public sealed class Plugin : IDalamudPlugin
     public readonly WindowSystem WindowSystem = new("Refitter");
 
     public bool EnableOverrides = true;
+    private int numCharaViews;
 
     public Plugin()
     {
@@ -66,6 +76,7 @@ public sealed class Plugin : IDalamudPlugin
         Hooking.InitializeFromAttributes(this);
 
         renderHook?.Enable();
+        charaViewRenderHook?.Enable();
 
         ConfigWindow = new ConfigWindow(this);
         WindowSystem.AddWindow(ConfigWindow);
@@ -88,6 +99,7 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         renderHook?.Dispose();
+        charaViewRenderHook?.Dispose();
 
         WindowSystem.RemoveAllWindows();
         ConfigWindow.Dispose();
@@ -95,16 +107,49 @@ public sealed class Plugin : IDalamudPlugin
 
     private nint Render(nint a1, nint a2, int a3, int a4)
     {
-        if (EnableOverrides) ApplyArmature();
+        unsafe
+        {
+            if (EnableOverrides)
+            {
+                var localPlayer = ClientState.LocalPlayer;
+                if (localPlayer != null)
+                {
+                    var gameObject = (Character*)localPlayer.Address;
+                    if (gameObject != null) ApplyArmature(gameObject);
+                }
+            }
+        }
+
+        unsafe
+        {
+            for (var i = 0; i < numCharaViews; i++) ApplyArmature(charaViews[i]->GetCharacter());
+        }
+
+        numCharaViews = 0;
+
         return renderHook!.Original(a1, a2, a3, a4);
     }
 
-    private unsafe void ApplyArmature()
+    private unsafe void RenderCharaView(CharaView* view, uint index)
     {
-        var localPlayer = ClientState.LocalPlayer;
-        if (localPlayer == null) return;
+        // Okay, this looks a little weird. Why not apply the armature here?
+        // For some reason I don't understand, this doesn't work when doing it at this time.
+        // I assume because this is mistakenly called "Render" but this seems more setup-y.
+        // So we'll just append it to the list instead, and handle it in the main render function.
+        if (EnableOverrides)
+        {
+            if (view->GetCharacter() != null && numCharaViews + 1 < MaxCharaViews)
+            {
+                charaViews[numCharaViews] = view;
+                numCharaViews++;
+            }
+        }
 
-        var gameObject = (Character*)localPlayer.Address;
+        charaViewRenderHook!.Original(view, index);
+    }
+
+    private unsafe void ApplyArmature(Character* gameObject)
+    {
         if (gameObject == null) return;
 
         var torsoData = gameObject->DrawData.Equipment(DrawDataContainer.EquipmentSlot.Body);
@@ -144,6 +189,10 @@ public sealed class Plugin : IDalamudPlugin
                                     existingTransform.Translation.Z += modelOverride.Gravity * 0.25f;
                                     existingTransform.Translation.Y -= modelOverride.Gravity * 1.1f;
 
+                                    existingTransform.Translation.X += modelOverride.NewPos.X;
+                                    existingTransform.Translation.Y += modelOverride.NewPos.Y;
+                                    existingTransform.Translation.Z -= modelOverride.NewPos.Z;
+
                                     var rotation = new Vector3();
                                     rotation.Z = modelOverride.Gravity * 350;
 
@@ -166,7 +215,7 @@ public sealed class Plugin : IDalamudPlugin
                                     existingTransform.Rotation.Z = newRotation.Z;
                                     existingTransform.Rotation.W = newRotation.W;
                                 }
-                                
+
                                 currentPose->ModelPose[boneIndex] = existingTransform;
                             }
 
@@ -197,4 +246,7 @@ public sealed class Plugin : IDalamudPlugin
 
     /// The detour function signature
     private delegate nint RenderDelegate(nint a1, nint a2, int a3, int a4);
+
+    /// Chara View detour function signature
+    private unsafe delegate void CharaViewRenderDelegate(CharaView* view, uint index);
 }

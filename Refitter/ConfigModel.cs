@@ -11,8 +11,11 @@ public class ConfigModel
     // The model ID
     public uint Model;
 
+    public Vector3 NewPos;
+
     // The new scale of the chest starting at 0 (it's added on top of the existing transform)
     public Vector3 NewScale;
+
     public float PushDown = 0.0f;
     public float PushUp = 0.0f;
 }
