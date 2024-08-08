@@ -156,7 +156,13 @@ public sealed class Plugin : IDalamudPlugin
 
         var charBase = (CharacterBase*)gameObject->DrawObject;
         if (charBase == null) return;
+        
+        var human = (Human*)gameObject->DrawObject;
+        if (human == null) return;
 
+        // Only apply to females
+        if (human->Customize.Sex != 1) return;
+        
         var skeleton = charBase->Skeleton;
         if (skeleton == null) return;
 
