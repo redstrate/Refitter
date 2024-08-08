@@ -6,6 +6,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.Havok.Common.Base.Math.QsTransform;
@@ -105,25 +106,31 @@ public sealed class Plugin : IDalamudPlugin
         ConfigWindow.Dispose();
     }
 
-    private nint Render(nint a1, nint a2, int a3, int a4)
+    private unsafe nint Render(nint a1, nint a2, int a3, int a4)
     {
-        unsafe
+        const int cutsceneStart = 200;
+        if (PluginInterface.UiBuilder.CutsceneActive)
         {
-            if (EnableOverrides)
+            // See https://github.com/Ottermandias/Penumbra.GameData/blob/016da3c2219a3dbe4c2841ae0d1305ae0b2ad60f/Enums/ScreenActor.cs
+            const int CutsceneEnd = 250;
+            for (var i = cutsceneStart; i < CutsceneEnd; i++)
             {
-                var localPlayer = ClientState.LocalPlayer;
-                if (localPlayer != null)
-                {
-                    var gameObject = (Character*)localPlayer.Address;
-                    if (gameObject != null) ApplyArmature(gameObject);
-                }
+                var gameObject = GameObjectManager.Instance()->Objects.IndexSorted[i];
+                if (gameObject != null) ApplyArmature((Character*)gameObject.Value);
             }
         }
 
-        unsafe
+        if (EnableOverrides)
         {
-            for (var i = 0; i < numCharaViews; i++) ApplyArmature(charaViews[i]->GetCharacter());
+            var localPlayer = ClientState.LocalPlayer;
+            if (localPlayer != null)
+            {
+                var gameObject = (Character*)localPlayer.Address;
+                if (gameObject != null) ApplyArmature(gameObject);
+            }
         }
+
+        for (var i = 0; i < numCharaViews; i++) ApplyArmature(charaViews[i]->GetCharacter());
 
         numCharaViews = 0;
 
@@ -156,13 +163,13 @@ public sealed class Plugin : IDalamudPlugin
 
         var charBase = (CharacterBase*)gameObject->DrawObject;
         if (charBase == null) return;
-        
+
         var human = (Human*)gameObject->DrawObject;
         if (human == null) return;
 
         // Only apply to females
         if (human->Customize.Sex != 1) return;
-        
+
         var skeleton = charBase->Skeleton;
         if (skeleton == null) return;
 
