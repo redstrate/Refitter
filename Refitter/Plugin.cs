@@ -163,6 +163,21 @@ public sealed class Plugin : IDalamudPlugin
             }
         }
 
+        // If the player switches clothes, don't consider it previewed anymore
+        if (PreviewSmallclothes && oldTorsoEquipment != null)
+        {
+            var localPlayer = ClientState.LocalPlayer;
+            var gameObject = (Character*)localPlayer.Address;
+            if (gameObject != null)
+            {
+                var torsoData = gameObject->DrawData.Equipment(DrawDataContainer.EquipmentSlot.Body);
+                if (!torsoData.Equals(oldTorsoEquipment.Value) && torsoData.Id != 0)
+                {
+                    _previewSmallclothes = false;
+                }
+            }
+        }
+
         for (var i = 0; i < numCharaViews; i++) ApplyArmature(charaViews[i]->GetCharacter());
 
         numCharaViews = 0;
