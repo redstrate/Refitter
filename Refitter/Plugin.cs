@@ -97,7 +97,9 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe nint Render(nint a1, nint a2, int a3, int a4)
     {
-        if (PluginInterface.UiBuilder.CutsceneActive)
+        // The lobby screen has the same start/end range as cutscenes.
+        // NOTE: https://github.com/Ottermandias/Penumbra.GameData/blob/016da3c2219a3dbe4c2841ae0d1305ae0b2ad60f/Enums/ScreenActor.cs#L9
+        if (PluginInterface.UiBuilder.CutsceneActive || !ClientState.IsLoggedIn)
         {
             for (var i = Constants.CutsceneStart; i < Constants.CutsceneEnd; i++)
             {
