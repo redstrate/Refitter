@@ -5,5 +5,6 @@
     "Description": "Add gear model-specific bone overrides.",
     "Tags": [],
     "RepoUrl": "https://github.com/redstrate/Refitter",
+    "IconUrl": "https://github.com/redstrate/Refitter/blob/main/images/icon.png?raw=true",
     "DalamudApiLevel": 10
 }
