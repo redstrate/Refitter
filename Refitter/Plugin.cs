@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Dalamud.Game.Command;
 using Dalamud.Hooking;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
@@ -71,6 +72,8 @@ public sealed class Plugin : IDalamudPlugin
     public bool EnableOverrides = true;
     private int numCharaViews;
 
+    private const string CommandName = "/refitter";
+    
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -82,8 +85,18 @@ public sealed class Plugin : IDalamudPlugin
         ConfigWindow = new ConfigWindow(this);
         WindowSystem.AddWindow(ConfigWindow);
 
+        CommandManager.AddHandler(CommandName, new CommandInfo(OnConfigCommand)
+        {
+            HelpMessage = "Display the Refitter config window."
+        });
+
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
         PluginInterface.UiBuilder.OpenConfigUi += ConfigWindow.Toggle;
+    }
+
+    private void OnConfigCommand(string command, string arguments)
+    {
+        ConfigWindow.IsOpen = !ConfigWindow.IsOpen;
     }
 
     [PluginService]
@@ -94,6 +107,9 @@ public sealed class Plugin : IDalamudPlugin
 
     [PluginService]
     internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+
+    [PluginService]
+    internal static ICommandManager CommandManager { get; private set; } = null!;
 
     private ConfigWindow ConfigWindow { get; init; }
 
