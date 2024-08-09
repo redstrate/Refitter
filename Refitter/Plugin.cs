@@ -21,24 +21,22 @@ public sealed class Plugin : IDalamudPlugin
     private const string CommandName = "/refitter";
     public static Configuration Configuration = null!;
 
-    /// See https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/UI/Misc/CharaView.cs
-    [Signature("E8 ?? ?? ?? ?? 49 8B 4C 24 ?? 8B 51 04", DetourName = nameof(RenderCharaView))]
-    private readonly Hook<CharaViewRenderDelegate>? charaViewRenderHook = null!;
+    [Signature(Constants.CharaViewRenderSignature, DetourName = nameof(RenderCharaView))]
+    private readonly Hook<Constants.CharaViewRenderDelegate>? charaViewRenderHook = null!;
 
     private readonly unsafe CharaView*[] charaViews = new CharaView*[MaxCharaViews];
 
-    /// Called sometime during the render loop
-    [Signature("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED", DetourName = nameof(Render))]
-    private readonly Hook<RenderDelegate>? renderHook = null!;
+    [Signature(Constants.RenderSignature, DetourName = nameof(Render))]
+    private readonly Hook<Constants.RenderDelegate>? renderHook = null!;
 
     public readonly WindowSystem WindowSystem = new("Refitter");
-
-    private bool previewSmallclothes;
 
     public bool EnableOverrides = true;
     private int numCharaViews;
 
     private EquipmentModelId? oldTorsoEquipment;
+
+    private bool previewSmallclothes;
 
     public Plugin()
     {
@@ -135,10 +133,7 @@ public sealed class Plugin : IDalamudPlugin
                 if (gameObject != null)
                 {
                     var torsoData = gameObject->DrawData.Equipment(DrawDataContainer.EquipmentSlot.Body);
-                    if (!torsoData.Equals(oldTorsoEquipment.Value) && torsoData.Id != 0)
-                    {
-                        previewSmallclothes = false;
-                    }
+                    if (!torsoData.Equals(oldTorsoEquipment.Value) && torsoData.Id != 0) previewSmallclothes = false;
                 }
             }
         }
@@ -302,10 +297,4 @@ public sealed class Plugin : IDalamudPlugin
             // ignored
         }
     }
-
-    /// The detour function signature
-    private delegate nint RenderDelegate(nint a1, nint a2, int a3, int a4);
-
-    /// Chara View detour function signature
-    private unsafe delegate void CharaViewRenderDelegate(CharaView* view, uint index);
 }

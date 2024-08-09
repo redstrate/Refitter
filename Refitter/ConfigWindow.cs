@@ -13,7 +13,7 @@ public class ConfigWindow(Plugin plugin)
     public override void Draw()
     {
         ImGui.Checkbox("Enable Adjustments", ref plugin.EnableOverrides);
-        
+
         unsafe
         {
             var localPlayer = Plugin.ClientState.LocalPlayer;
@@ -27,13 +27,11 @@ public class ConfigWindow(Plugin plugin)
             var previewSmallClothes = plugin.PreviewSmallclothes;
             if (ImGui.Checkbox("Preview Smallclothes", ref previewSmallClothes))
                 plugin.PreviewSmallclothes = previewSmallClothes;
-            
+
             ImGui.Separator();
 
             if (previewSmallClothes)
-            {
                 ImGui.TextDisabled("Cannot adjust while previewing smallclothes.");
-            }
             else
             {
                 var adjustment = Plugin.Configuration.Configs.Find(x => x.Model == torsoData.Id);
