@@ -220,7 +220,7 @@ public sealed class Plugin : IDalamudPlugin
                         for (var boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Length; ++boneIndex)
                         {
                             var boneName = currentPose->Skeleton->Bones[boneIndex].Name.String;
-                            if (boneName is "j_mune_l" or "j_mune_r")
+                            if (boneName is Constants.LeftBreastBoneName or Constants.RightBreastBoneName)
                             {
                                 var existingTransform = currentPose->ModelPose[boneIndex];
 
@@ -243,7 +243,7 @@ public sealed class Plugin : IDalamudPlugin
                                     var rotation = new Vector3();
                                     rotation.Z = modelOverride.Gravity * 350;
 
-                                    if (boneName == "j_mune_l")
+                                    if (boneName == Constants.LeftBreastBoneName)
                                     {
                                         existingTransform.Translation.X -= modelOverride.PushUp * 1.25f;
                                         rotation.X = modelOverride.PushUp * -350;
@@ -267,7 +267,7 @@ public sealed class Plugin : IDalamudPlugin
                             }
 
                             // spine b
-                            if (boneName == "j_sebo_b")
+                            if (boneName == Constants.SpineBoneName)
                             {
                                 var existingTransform = currentPose->ModelPose[boneIndex];
 

@@ -30,4 +30,13 @@ public static class Constants
 
     /// Called sometime during the render loop
     public const String RenderSignature = "E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED";
+
+    /// Name of the left breast bone.
+    public const String LeftBreastBoneName = "j_mune_l";
+    
+    /// Name of the right breast bone.
+    public const String RightBreastBoneName = "j_mune_r";
+    
+    /// Name of the spine bone.
+    public const String SpineBoneName = "j_sebo_b";
 }
