@@ -27,11 +27,11 @@ public class ConfigWindow(Plugin plugin)
             var previewSmallClothes = plugin.PreviewSmallclothes;
             if (ImGui.Checkbox("Preview Smallclothes", ref previewSmallClothes))
                 plugin.PreviewSmallclothes = previewSmallClothes;
+            
+            ImGui.Separator();
 
             if (previewSmallClothes)
             {
-                ImGui.Separator();
-
                 ImGui.TextDisabled("Cannot adjust while previewing smallclothes.");
             }
             else
@@ -39,8 +39,6 @@ public class ConfigWindow(Plugin plugin)
                 var adjustment = Plugin.Configuration.Configs.Find(x => x.Model == torsoData.Id);
                 if (adjustment != null)
                 {
-                    ImGui.Separator();
-
                     ImGui.TextDisabled($"Adjustments for {torsoData.Id}");
 
                     ImGui.DragFloat("Gravity", ref adjustment.Gravity, 0.001f);
