@@ -76,7 +76,7 @@ public sealed class Plugin : IDalamudPlugin
     public bool EnableOverrides = true;
     private int numCharaViews;
 
-    private EquipmentModelId oldTorsoEquipment;
+    private EquipmentModelId? oldTorsoEquipment;
 
     public Plugin()
     {
@@ -192,11 +192,13 @@ public sealed class Plugin : IDalamudPlugin
 
     public unsafe void RestoreArmor()
     {
+        if (oldTorsoEquipment == null) return;
+
         var localPlayer = ClientState.LocalPlayer;
         if (localPlayer != null)
         {
             var gameObject = (Character*)localPlayer.Address;
-            var torsoData = oldTorsoEquipment;
+            var torsoData = oldTorsoEquipment.Value;
             gameObject->DrawData.LoadEquipment(DrawDataContainer.EquipmentSlot.Body, &torsoData, false);
         }
     }
