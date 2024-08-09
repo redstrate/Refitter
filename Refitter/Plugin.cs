@@ -10,9 +10,6 @@ using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
-using FFXIVClientStructs.Havok.Common.Base.Math.QsTransform;
-using FFXIVClientStructs.Havok.Common.Base.Math.Quaternion;
-using FFXIVClientStructs.Havok.Common.Base.Math.Vector;
 
 namespace Refitter;
 
@@ -23,41 +20,6 @@ public sealed class Plugin : IDalamudPlugin
 
     private const string CommandName = "/refitter";
     public static Configuration Configuration = null!;
-
-    /// <summary>
-    ///     A "null" havok vector. Since the type isn't inherently nullable, and the default value (0, 0, 0, 0)
-    ///     is valid input in a lot of cases, we can use this instead.
-    /// </summary>
-    public static readonly hkVector4f NullVector = new()
-    {
-        X = float.NaN,
-        Y = float.NaN,
-        Z = float.NaN,
-        W = float.NaN
-    };
-
-    /// <summary>
-    ///     A "null" havok quaternion. Since the type isn't inherently nullable, and the default value (0, 0, 0, 0)
-    ///     is valid input in a lot of cases, we can use this instead.
-    /// </summary>
-    public static readonly hkQuaternionf NullQuaternion = new()
-    {
-        X = float.NaN,
-        Y = float.NaN,
-        Z = float.NaN,
-        W = float.NaN
-    };
-
-    /// <summary>
-    ///     A "null" havok transform. Since the type isn't inherently nullable, and the default values
-    ///     aren't immediately obviously wrong, we can use this instead.
-    /// </summary>
-    public static readonly hkQsTransformf NullTransform = new()
-    {
-        Translation = NullVector,
-        Rotation = NullQuaternion,
-        Scale = NullVector
-    };
 
     /// See https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/UI/Misc/CharaView.cs
     [Signature("E8 ?? ?? ?? ?? 49 8B 4C 24 ?? 8B 51 04", DetourName = nameof(RenderCharaView))]
@@ -71,7 +33,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public readonly WindowSystem WindowSystem = new("Refitter");
 
-    private bool _previewSmallclothes;
+    private bool previewSmallclothes;
 
     public bool EnableOverrides = true;
     private int numCharaViews;
@@ -100,10 +62,10 @@ public sealed class Plugin : IDalamudPlugin
 
     public bool PreviewSmallclothes
     {
-        get => _previewSmallclothes;
+        get => previewSmallclothes;
         set
         {
-            _previewSmallclothes = value;
+            previewSmallclothes = value;
             if (value) HideArmor();
             else RestoreArmor();
         }
@@ -167,13 +129,16 @@ public sealed class Plugin : IDalamudPlugin
         if (PreviewSmallclothes && oldTorsoEquipment != null)
         {
             var localPlayer = ClientState.LocalPlayer;
-            var gameObject = (Character*)localPlayer.Address;
-            if (gameObject != null)
+            if (localPlayer != null)
             {
-                var torsoData = gameObject->DrawData.Equipment(DrawDataContainer.EquipmentSlot.Body);
-                if (!torsoData.Equals(oldTorsoEquipment.Value) && torsoData.Id != 0)
+                var gameObject = (Character*)localPlayer.Address;
+                if (gameObject != null)
                 {
-                    _previewSmallclothes = false;
+                    var torsoData = gameObject->DrawData.Equipment(DrawDataContainer.EquipmentSlot.Body);
+                    if (!torsoData.Equals(oldTorsoEquipment.Value) && torsoData.Id != 0)
+                    {
+                        previewSmallclothes = false;
+                    }
                 }
             }
         }
