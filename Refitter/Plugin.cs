@@ -20,6 +20,8 @@ public sealed class Plugin : IDalamudPlugin
 {
     // TODO: is this actually the maximum number of possible character views on screen?
     private const int MaxCharaViews = 5;
+
+    private const string CommandName = "/refitter";
     public static Configuration Configuration = null!;
 
     /// <summary>
@@ -69,11 +71,13 @@ public sealed class Plugin : IDalamudPlugin
 
     public readonly WindowSystem WindowSystem = new("Refitter");
 
+    private bool _previewSmallclothes;
+
     public bool EnableOverrides = true;
     private int numCharaViews;
 
-    private const string CommandName = "/refitter";
-    
+    private EquipmentModelId oldTorsoEquipment;
+
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -94,9 +98,15 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi += ConfigWindow.Toggle;
     }
 
-    private void OnConfigCommand(string command, string arguments)
+    public bool PreviewSmallclothes
     {
-        ConfigWindow.IsOpen = !ConfigWindow.IsOpen;
+        get => _previewSmallclothes;
+        set
+        {
+            _previewSmallclothes = value;
+            if (value) HideArmor();
+            else RestoreArmor();
+        }
     }
 
     [PluginService]
@@ -115,6 +125,8 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
+        PreviewSmallclothes = false;
+
         renderHook?.Dispose();
         charaViewRenderHook?.Dispose();
 
@@ -122,14 +134,19 @@ public sealed class Plugin : IDalamudPlugin
         ConfigWindow.Dispose();
     }
 
+    private void OnConfigCommand(string command, string arguments)
+    {
+        ConfigWindow.IsOpen = !ConfigWindow.IsOpen;
+    }
+
     private unsafe nint Render(nint a1, nint a2, int a3, int a4)
     {
+        // See https://github.com/Ottermandias/Penumbra.GameData/blob/016da3c2219a3dbe4c2841ae0d1305ae0b2ad60f/Enums/ScreenActor.cs
+        const int cutsceneEnd = 250;
         const int cutsceneStart = 200;
         if (PluginInterface.UiBuilder.CutsceneActive)
         {
-            // See https://github.com/Ottermandias/Penumbra.GameData/blob/016da3c2219a3dbe4c2841ae0d1305ae0b2ad60f/Enums/ScreenActor.cs
-            const int CutsceneEnd = 250;
-            for (var i = cutsceneStart; i < CutsceneEnd; i++)
+            for (var i = cutsceneStart; i < cutsceneEnd; i++)
             {
                 var gameObject = GameObjectManager.Instance()->Objects.IndexSorted[i];
                 if (gameObject != null) ApplyArmature((Character*)gameObject.Value);
@@ -151,6 +168,37 @@ public sealed class Plugin : IDalamudPlugin
         numCharaViews = 0;
 
         return renderHook!.Original(a1, a2, a3, a4);
+    }
+
+    public unsafe void HideArmor()
+    {
+        var localPlayer = ClientState.LocalPlayer;
+        if (localPlayer != null)
+        {
+            var gameObject = (Character*)localPlayer.Address;
+
+            var torsoData = gameObject->DrawData.Equipment(DrawDataContainer.EquipmentSlot.Body);
+            if (PreviewSmallclothes)
+            {
+                oldTorsoEquipment = torsoData;
+                torsoData = new EquipmentModelId
+                {
+                    Id = 0
+                };
+                gameObject->DrawData.LoadEquipment(DrawDataContainer.EquipmentSlot.Body, &torsoData, false);
+            }
+        }
+    }
+
+    public unsafe void RestoreArmor()
+    {
+        var localPlayer = ClientState.LocalPlayer;
+        if (localPlayer != null)
+        {
+            var gameObject = (Character*)localPlayer.Address;
+            var torsoData = oldTorsoEquipment;
+            gameObject->DrawData.LoadEquipment(DrawDataContainer.EquipmentSlot.Body, &torsoData, false);
+        }
     }
 
     private unsafe void RenderCharaView(CharaView* view, uint index)
