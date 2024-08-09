@@ -15,16 +15,12 @@ namespace Refitter;
 
 public sealed class Plugin : IDalamudPlugin
 {
-    // TODO: is this actually the maximum number of possible character views on screen?
-    private const int MaxCharaViews = 5;
-
-    private const string CommandName = "/refitter";
     public static Configuration Configuration = null!;
 
     [Signature(Constants.CharaViewRenderSignature, DetourName = nameof(RenderCharaView))]
     private readonly Hook<Constants.CharaViewRenderDelegate>? charaViewRenderHook = null!;
 
-    private readonly unsafe CharaView*[] charaViews = new CharaView*[MaxCharaViews];
+    private readonly unsafe CharaView*[] charaViews = new CharaView*[Constants.MaxCharaViews];
 
     [Signature(Constants.RenderSignature, DetourName = nameof(Render))]
     private readonly Hook<Constants.RenderDelegate>? renderHook = null!;
@@ -49,7 +45,7 @@ public sealed class Plugin : IDalamudPlugin
         ConfigWindow = new ConfigWindow(this);
         WindowSystem.AddWindow(ConfigWindow);
 
-        CommandManager.AddHandler(CommandName, new CommandInfo(OnConfigCommand)
+        CommandManager.AddHandler(Constants.CommandName, new CommandInfo(OnConfigCommand)
         {
             HelpMessage = "Display the Refitter config window."
         });
@@ -101,12 +97,9 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe nint Render(nint a1, nint a2, int a3, int a4)
     {
-        // See https://github.com/Ottermandias/Penumbra.GameData/blob/016da3c2219a3dbe4c2841ae0d1305ae0b2ad60f/Enums/ScreenActor.cs
-        const int cutsceneEnd = 250;
-        const int cutsceneStart = 200;
         if (PluginInterface.UiBuilder.CutsceneActive)
         {
-            for (var i = cutsceneStart; i < cutsceneEnd; i++)
+            for (var i = Constants.CutsceneStart; i < Constants.CutsceneEnd; i++)
             {
                 var gameObject = GameObjectManager.Instance()->Objects.IndexSorted[i];
                 if (gameObject != null) ApplyArmature((Character*)gameObject.Value);
@@ -186,7 +179,7 @@ public sealed class Plugin : IDalamudPlugin
         // So we'll just append it to the list instead, and handle it in the main render function.
         if (EnableOverrides)
         {
-            if (view->GetCharacter() != null && numCharaViews + 1 < MaxCharaViews)
+            if (view->GetCharacter() != null && numCharaViews + 1 < Constants.MaxCharaViews)
             {
                 charaViews[numCharaViews] = view;
                 numCharaViews++;
