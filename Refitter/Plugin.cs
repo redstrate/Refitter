@@ -99,7 +99,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         // The lobby screen has the same start/end range as cutscenes.
         // NOTE: https://github.com/Ottermandias/Penumbra.GameData/blob/016da3c2219a3dbe4c2841ae0d1305ae0b2ad60f/Enums/ScreenActor.cs#L9
-        if (PluginInterface.UiBuilder.CutsceneActive || !ClientState.IsLoggedIn)
+        if (PluginInterface.UiBuilder.CutsceneActive || !ClientState.IsLoggedIn || ClientState.IsGPosing)
         {
             for (var i = Constants.CutsceneStart; i < Constants.CutsceneEnd; i++)
             {
