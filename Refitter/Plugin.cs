@@ -9,7 +9,6 @@ using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
-using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 
 namespace Refitter;
 
@@ -17,18 +16,12 @@ public sealed class Plugin : IDalamudPlugin
 {
     public static Configuration Configuration = null!;
 
-    [Signature(Constants.CharaViewRenderSignature, DetourName = nameof(RenderCharaView))]
-    private readonly Hook<Constants.CharaViewRenderDelegate>? charaViewRenderHook = null!;
-
-    private readonly unsafe CharaView*[] charaViews = new CharaView*[Constants.MaxCharaViews];
-
     [Signature(Constants.RenderSignature, DetourName = nameof(Render))]
     private readonly Hook<Constants.RenderDelegate>? renderHook = null!;
 
     public readonly WindowSystem WindowSystem = new("Refitter");
 
     public bool EnableOverrides = true;
-    private int numCharaViews;
 
     private EquipmentModelId? oldTorsoEquipment;
 
@@ -40,7 +33,6 @@ public sealed class Plugin : IDalamudPlugin
         Hooking.InitializeFromAttributes(this);
 
         renderHook?.Enable();
-        charaViewRenderHook?.Enable();
 
         ConfigWindow = new ConfigWindow(this);
         WindowSystem.AddWindow(ConfigWindow);
@@ -87,7 +79,6 @@ public sealed class Plugin : IDalamudPlugin
         PreviewSmallclothes = false;
 
         renderHook?.Dispose();
-        charaViewRenderHook?.Dispose();
 
         WindowSystem.RemoveAllWindows();
         ConfigWindow.Dispose();
@@ -102,22 +93,9 @@ public sealed class Plugin : IDalamudPlugin
     {
         if (EnableOverrides)
         {
-            // The lobby screen has the same start/end range as cutscenes.
-            // NOTE: https://github.com/Ottermandias/Penumbra.GameData/blob/016da3c2219a3dbe4c2841ae0d1305ae0b2ad60f/Enums/ScreenActor.cs#L9
-            if (PluginInterface.UiBuilder.CutsceneActive || !ClientState.IsLoggedIn || ClientState.IsGPosing)
+            foreach (var gameObject in GameObjectManager.Instance()->Objects.IndexSorted)
             {
-                for (var i = Constants.CutsceneStart; i < Constants.CutsceneEnd; i++)
-                {
-                    var gameObject = GameObjectManager.Instance()->Objects.IndexSorted[i];
-                    if (gameObject != null) ApplyArmature((Character*)gameObject.Value);
-                }
-            }
-
-            var localPlayer = ClientState.LocalPlayer;
-            if (localPlayer != null)
-            {
-                var gameObject = (Character*)localPlayer.Address;
-                if (gameObject != null) ApplyArmature(gameObject);
+                ApplyArmature((Character*)gameObject.Value);
             }
         }
 
@@ -135,13 +113,6 @@ public sealed class Plugin : IDalamudPlugin
                 }
             }
         }
-
-        if (EnableOverrides)
-        {
-            for (var i = 0; i < numCharaViews; i++) ApplyArmature(charaViews[i]->GetCharacter());
-        }
-
-        numCharaViews = 0;
 
         return renderHook!.Original(a1, a2, a3, a4);
     }
@@ -177,24 +148,6 @@ public sealed class Plugin : IDalamudPlugin
             var torsoData = oldTorsoEquipment.Value;
             gameObject->DrawData.LoadEquipment(DrawDataContainer.EquipmentSlot.Body, &torsoData, false);
         }
-    }
-
-    private unsafe void RenderCharaView(CharaView* view, uint index)
-    {
-        // Okay, this looks a little weird. Why not apply the armature here?
-        // For some reason I don't understand, this doesn't work when doing it at this time.
-        // I assume because this is mistakenly called "Render" but this seems more setup-y.
-        // So we'll just append it to the list instead, and handle it in the main render function.
-        if (EnableOverrides)
-        {
-            if (view->GetCharacter() != null && numCharaViews + 1 < Constants.MaxCharaViews)
-            {
-                charaViews[numCharaViews] = view;
-                numCharaViews++;
-            }
-        }
-
-        charaViewRenderHook!.Original(view, index);
     }
 
     private unsafe void ApplyArmature(Character* gameObject)
