@@ -199,15 +199,17 @@ public sealed class Plugin : IDalamudPlugin
                                     existingTransform.Scale.Z *=
                                         float.Lerp(1.0f, modelOverride.NewScale.Z + (modelOverride.Gravity * 2.5f), applyAmount);
 
-                                    existingTransform.Translation.Z += modelOverride.Gravity * 0.25f;
-                                    existingTransform.Translation.Y -= modelOverride.Gravity * 1.1f;
+                                    existingTransform.Translation.Z += float.Lerp(0.0f, modelOverride.Gravity * 0.25f, applyAmount);
+                                    existingTransform.Translation.Y -= float.Lerp(0.0f, modelOverride.Gravity * 1.1f, applyAmount);
 
-                                    existingTransform.Translation.X += modelOverride.NewPos.X;
-                                    existingTransform.Translation.Y += modelOverride.NewPos.Y;
-                                    existingTransform.Translation.Z -= modelOverride.NewPos.Z;
+                                    existingTransform.Translation.X += float.Lerp(0.0f, modelOverride.NewPos.X, applyAmount);
+                                    existingTransform.Translation.Y += float.Lerp(0.0f, modelOverride.NewPos.Y, applyAmount);
+                                    existingTransform.Translation.Z -= float.Lerp(0.0f, modelOverride.NewPos.Z, applyAmount);
 
-                                    var rotation = new Vector3();
-                                    rotation.Z = modelOverride.Gravity * 350;
+                                    var rotation = new Vector3
+                                    {
+                                        Z = modelOverride.Gravity * 350
+                                    };
 
                                     if (boneName == Constants.LeftBreastBoneName)
                                     {
