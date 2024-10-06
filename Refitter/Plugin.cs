@@ -100,19 +100,19 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe nint Render(nint a1, nint a2, int a3, int a4)
     {
-        // The lobby screen has the same start/end range as cutscenes.
-        // NOTE: https://github.com/Ottermandias/Penumbra.GameData/blob/016da3c2219a3dbe4c2841ae0d1305ae0b2ad60f/Enums/ScreenActor.cs#L9
-        if (PluginInterface.UiBuilder.CutsceneActive || !ClientState.IsLoggedIn || ClientState.IsGPosing)
-        {
-            for (var i = Constants.CutsceneStart; i < Constants.CutsceneEnd; i++)
-            {
-                var gameObject = GameObjectManager.Instance()->Objects.IndexSorted[i];
-                if (gameObject != null) ApplyArmature((Character*)gameObject.Value);
-            }
-        }
-
         if (EnableOverrides)
         {
+            // The lobby screen has the same start/end range as cutscenes.
+            // NOTE: https://github.com/Ottermandias/Penumbra.GameData/blob/016da3c2219a3dbe4c2841ae0d1305ae0b2ad60f/Enums/ScreenActor.cs#L9
+            if (PluginInterface.UiBuilder.CutsceneActive || !ClientState.IsLoggedIn || ClientState.IsGPosing)
+            {
+                for (var i = Constants.CutsceneStart; i < Constants.CutsceneEnd; i++)
+                {
+                    var gameObject = GameObjectManager.Instance()->Objects.IndexSorted[i];
+                    if (gameObject != null) ApplyArmature((Character*)gameObject.Value);
+                }
+            }
+
             var localPlayer = ClientState.LocalPlayer;
             if (localPlayer != null)
             {
@@ -136,7 +136,10 @@ public sealed class Plugin : IDalamudPlugin
             }
         }
 
-        for (var i = 0; i < numCharaViews; i++) ApplyArmature(charaViews[i]->GetCharacter());
+        if (EnableOverrides)
+        {
+            for (var i = 0; i < numCharaViews; i++) ApplyArmature(charaViews[i]->GetCharacter());
+        }
 
         numCharaViews = 0;
 
@@ -209,6 +212,11 @@ public sealed class Plugin : IDalamudPlugin
         // Only apply to females
         if (human->Customize.Sex != 1) return;
 
+        var applyAmount = human->Customize.BustSize / 100.0f;
+
+        // Don't apply to Lalafells
+        if (human->Customize.Race == 3) return;
+
         var skeleton = charBase->Skeleton;
         if (skeleton == null) return;
 
@@ -233,10 +241,10 @@ public sealed class Plugin : IDalamudPlugin
                                 if (modelOverride != null)
                                 {
                                     existingTransform.Scale.X *=
-                                        modelOverride.NewScale.X;
-                                    existingTransform.Scale.Y *= modelOverride.NewScale.Y;
+                                        float.Lerp(1.0f, modelOverride.NewScale.X, applyAmount);
+                                    existingTransform.Scale.Y *= float.Lerp(1.0f, modelOverride.NewScale.Y, applyAmount);
                                     existingTransform.Scale.Z *=
-                                        modelOverride.NewScale.Z + (modelOverride.Gravity * 2.5f);
+                                        float.Lerp(1.0f, modelOverride.NewScale.Z + (modelOverride.Gravity * 2.5f), applyAmount);
 
                                     existingTransform.Translation.Z += modelOverride.Gravity * 0.25f;
                                     existingTransform.Translation.Y -= modelOverride.Gravity * 1.1f;
