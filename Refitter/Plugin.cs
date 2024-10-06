@@ -76,6 +76,9 @@ public sealed class Plugin : IDalamudPlugin
 
     [PluginService]
     internal static ICommandManager CommandManager { get; private set; } = null!;
+    
+    [PluginService]
+    internal static INotificationManager NotificationManager { get; private set; } = null!;
 
     private ConfigWindow ConfigWindow { get; init; }
 
